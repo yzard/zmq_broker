@@ -25,9 +25,11 @@ class Worker:
 
         self._broker = broker
         self._context = zmq.Context()
-        self._socket = self._context.socket(zmq.DEALER)
+        self._socket: zmq.Socket = self._context.socket(zmq.DEALER)
         self._socket.setsockopt(zmq.IDENTITY, f"Worker|{socket.gethostname()}|{os.getpid()}".encode())
         self._socket.connect(self._broker)
+
+        self._register_category()
 
         self._stop_event = threading.Event()
         self._ping_thread = start_ping(self._socket, ping_interval, stop_event=self._stop_event)
@@ -41,7 +43,7 @@ class Worker:
             self._process_one_request()
 
     def _register_category(self):
-        pass
+        self._socket.send_multipart([Instruction.RegisterCategory.value, self._category.value])
 
     def _process_one_request(self):
         frames = self._socket.recv_multipart()
